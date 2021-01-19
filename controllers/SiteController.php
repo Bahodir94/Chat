@@ -12,22 +12,27 @@ use app\models\ContactForm;
 
 class SiteController extends Controller
 {
+
+    public $freeAccessActions = ['index', 'about'];
     /**
      * {@inheritdoc}
      */
     public function behaviors()
     {
         return [
-            'access' => [
-                'class' => AccessControl::className(),
-                'only' => ['logout'],
-                'rules' => [
-                    [
-                        'actions' => ['logout'],
-                        'allow' => true,
-                        'roles' => ['@'],
-                    ],
-                ],
+            // 'access' => [
+            //     'class' => AccessControl::className(),
+            //     'only' => ['logout'],
+            //     'rules' => [
+            //         [
+            //             'actions' => ['logout'],
+            //             'allow' => true,
+            //             'roles' => ['@'],
+            //         ],
+            //     ],
+            // ],
+            'ghost-access'=> [
+                'class' => 'webvimark\modules\UserManagement\components\GhostAccessControl',
             ],
             'verbs' => [
                 'class' => VerbFilter::className(),
