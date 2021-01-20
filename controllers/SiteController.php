@@ -7,42 +7,48 @@ use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\Response;
 use yii\filters\VerbFilter;
-use app\models\LoginForm;
-use app\models\ContactForm;
+use yii\web\ForbiddenHttpException;
+use app\models\User;
+use app\models\Messages;
+use yii\db\Expression;
 
 class SiteController extends Controller
 {
 
-    public $freeAccessActions = ['index', 'about'];
-    /**
-     * {@inheritdoc}
-     */
+    public function beforeAction($action)
+    {
+        if (parent::beforeAction($action)) {
+            if (!\Yii::$app->user->can($action->id)) {
+                throw new ForbiddenHttpException('Access denied');
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public function behaviors()
     {
         return [
-            // 'access' => [
-            //     'class' => AccessControl::className(),
-            //     'only' => ['logout'],
-            //     'rules' => [
-            //         [
-            //             'actions' => ['logout'],
-            //             'allow' => true,
-            //             'roles' => ['@'],
-            //         ],
-            //     ],
-            // ],
-            'ghost-access'=> [
-                'class' => 'webvimark\modules\UserManagement\components\GhostAccessControl',
-            ],
-            'verbs' => [
-                'class' => VerbFilter::className(),
-                'actions' => [
-                    'logout' => ['post'],
+            'access' => [
+                'class' => AccessControl::className(),
+                'rules' => [
+                    [
+                        'actions' => ['index', 'users', 'incorrect-messages', 'post', 'change-role', 'spam-message'],
+                        'allow' => true,
+                        'roles' => ['@'],
+                    ],
+                    [
+                        'actions' => ['index'],
+                        'allow' => true,
+                        'roles' => ['?'],
+                    ],
                 ],
             ],
+            
         ];
     }
-
+  
     /**
      * {@inheritdoc}
      */
@@ -66,68 +72,46 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        $messages = Messages::find()->all();
+        return $this->render('index', compact('messages'));
     }
 
-    /**
-     * Login action.
-     *
-     * @return Response|string
-     */
-    public function actionLogin()
-    {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
+    public function actionPost(){
+        if (Yii::$app->request->post()){
+            $msg = Yii::$app->request->post('msg');
+            $message = new Messages();
+            $message->text = $msg;
+            $message->user = \Yii::$app->user->identity->username;
+            $message->created_at = time();
+            $message->save();
+            return true;
         }
-
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
-        }
-
-        $model->password = '';
-        return $this->render('login', [
-            'model' => $model,
-        ]);
     }
 
-    /**
-     * Logout action.
-     *
-     * @return Response
-     */
-    public function actionLogout()
-    {
-        Yii::$app->user->logout();
-
-        return $this->goHome();
+    public function actionUsers(){
+        $users = User::find()->all();
+        return $this->render('users', compact('users'));
     }
 
-    /**
-     * Displays contact page.
-     *
-     * @return Response|string
-     */
-    public function actionContact()
-    {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->contact(Yii::$app->params['adminEmail'])) {
-            Yii::$app->session->setFlash('contactFormSubmitted');
-
-            return $this->refresh();
-        }
-        return $this->render('contact', [
-            'model' => $model,
-        ]);
+    public function actionChangeRole($id, $role){
+        $user = User::findOne($id);
+        $role == 1 ? $user->role = 'admin' : $user->role = 'user';
+        $user->save();
+        \Yii::$app->session->setFlash('success', 'Роль пользователя успешно обновлена!');
+        return $this->redirect(['site/users']);
     }
 
-    /**
-     * Displays about page.
-     *
-     * @return string
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
+    public function actionSpamMessage($id, $status){
+        $message = Messages::findOne($id);
+        $status == 1 ? $message->spam = 1 : $message->spam = 0;
+        $message->save(); 
+        \Yii::$app->session->setFlash('success', 'Статус сообщения успешно обновлена!');
+        return $this->redirect(['site/incorrect-messages']);
     }
+
+    public function actionIncorrectMessages(){
+        $messages = Messages::find()->where(['spam'=>1])->all();
+        return $this->render('incorrect-messages', compact('messages'));
+    }
+
 }

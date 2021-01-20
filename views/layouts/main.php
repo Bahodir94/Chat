@@ -5,6 +5,7 @@
 
 use app\widgets\Alert;
 use yii\helpers\Html;
+use yii\helpers\Url;
 use yii\bootstrap\Nav;
 use yii\bootstrap\NavBar;
 use yii\widgets\Breadcrumbs;
@@ -35,25 +36,33 @@ AppAsset::register($this);
             'class' => 'navbar-inverse navbar-fixed-top',
         ],
     ]);
+    
+    $menuItems = [
+        ['label' => 'Главная', 'url' => Url::to(['site/index'])],
+    ];
+    if (Yii::$app->user->isGuest) {
+        $menuItems[] = ['label' => 'Войти', 'url' => Url::to(['auth/login'])];
+        $menuItems[] = ['label' => 'Регистрация', 'url' => Url::to(['auth/signup'])];
+    }
+    else {
+        if (Yii::$app->user->identity->role == 'admin'){
+            $menuItems[] = ['label' => 'Пользователы', 'url' => Url::to(['site/users'])];
+            $menuItems[] = ['label' => 'Некорректных сообщений', 'url' => Url::to(['site/incorrect-messages'])];
+        }
+        $menuItems[] = ['label' => Yii::$app->user->identity->username,  
+            'url' => ['#'],
+            'template' => '<a href="{url}" >{label}<i class="fa fa-angle-left pull-right"></i></a>',
+            'items' => [
+                ['label'=>'Сменить пароль', 'url'=>Url::to(['auth/change-password'])],
+                ['label' => 'Выйти', 'url' => Url::to(['auth/logout']), 'linkOptions' => ['data-method'=>'post']],
+            ],
+        ];
+        
+    }
+
     echo Nav::widget([
         'options' => ['class' => 'navbar-nav navbar-right'],
-        'items' => [
-            ['label' => 'Home', 'url' => ['/site/index']],
-            ['label' => 'About', 'url' => ['/site/about']],
-            ['label' => 'Contact', 'url' => ['/site/contact']],
-            Yii::$app->user->isGuest ? (
-                ['label' => 'Login', 'url' => ['/site/login']]
-            ) : (
-                '<li>'
-                . Html::beginForm(['/site/logout'], 'post')
-                . Html::submitButton(
-                    'Logout (' . Yii::$app->user->identity->username . ')',
-                    ['class' => 'btn btn-link logout']
-                )
-                . Html::endForm()
-                . '</li>'
-            )
-        ],
+        'items' => $menuItems,
     ]);
     NavBar::end();
     ?>

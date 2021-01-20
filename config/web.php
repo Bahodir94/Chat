@@ -4,7 +4,9 @@ $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
 $config = [
+    'language' => 'ru',
     'id' => 'basic',
+    'timeZone' => 'Asia/Tashkent',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
     'aliases' => [
@@ -12,17 +14,21 @@ $config = [
         '@npm'   => '@vendor/npm-asset',
     ],
     'components' => [
+        'authManager' => [
+            'class' => 'yii\rbac\PhpManager',
+            'defaultRoles' => ['admin', 'user'],
+        ],
         'request' => [
             'cookieValidationKey' => 'PjItC6LW42A5G2Nvo_xO4Qdtwr2KwQJi',
+            'baseUrl' => '',
         ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
         ],
         'user' => [
-            'class' => 'webvimark\modules\UserManagement\components\UserConfig',    
-            'on afterLogin' => function($event) {
-                    \webvimark\modules\UserManagement\models\UserVisitLog::newVisitor($event->identity->id);
-                }
+            'identityClass' => 'app\models\User', // User must implement the IdentityInterface
+            'enableAutoLogin' => true,
+            'loginUrl' => ['login'],
         ],
         'errorHandler' => [
             'errorAction' => 'site/error',
@@ -45,20 +51,19 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                'index' => 'site/index',    
+                'post' => 'site/post',
+                'messages' => 'site/incorrect-messages',
+                'users' => 'site/users',
+                'spam/<id:\d+>' => 'site/spam-message',
+                'role/<id:\d+>' => 'site/change-role',
+                'login' => 'auth/login',
+                'logout' => 'auth/logout',
+                'signup' => 'auth/signup',
+                'change-password' => 'auth/change-password',
+                'request-reset' => 'auth/request-password-reset',
+                'reset-password' => 'auth/reset-password',
             ],
-        ],
-    ],
-    'modules'=>[
-        'user-management' => [
-            'class' => 'webvimark\modules\UserManagement\UserManagementModule',
-            'enableRegistration' => true,
-            'passwordRegexp' => '^\S*(?=\S{8,})(?=\S*[a-z])(?=\S*[A-Z])(?=\S*[\d])\S*$',
-            'on beforeAction'=>function(yii\base\ActionEvent $event) {
-                    if ( $event->action->uniqueId == 'user-management/auth/login' )
-                    {
-                        $event->action->controller->layout = 'loginLayout.php';
-                    };
-                },
         ],
     ],
     'params' => $params,

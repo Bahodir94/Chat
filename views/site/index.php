@@ -3,51 +3,91 @@
 /* @var $this yii\web\View */
 
 $this->title = 'My Yii Application';
+use yii\helpers\Html;
+use yii\helpers\Url;
+echo Html :: csrfMetaTags();
 ?>
 <div class="site-index">
+    <div class="row">
+        <div class="col-md-10 col-md-offset-1">
+            <div  class="messages">
+                <? foreach($messages as $message):?>
+                    <? if ($message->spam == 1 && \Yii::$app->user->identity->role == 'admin'):?>
+                        <div class="<?=$message->user == \Yii::$app->user->identity->username ? 'own' : 'not-own';?>">
+                            <small class="user"><?=$message->user?></small>
+                            <small class="text-left label label-danger">спам</small>
+                            <span class='action label label-info'>
+                                <a href="<?=Url::to(['site/spam-message','id'=>$message->id, 'status'=>0])?>">Показать</a>
+                            </span>
+                            <p class='msg'><?=$message->text?></p>
+                            <small><?=date('d.m.Y',$message->created_at)?></small>
+                            <small><?=date('H:i',$message->created_at)?></small>
+                        </div>
 
-    <div class="jumbotron">
-        <h1>Congratulations!</h1>
-
-        <p class="lead">You have successfully created your Yii-powered application.</p>
-
-        <p><a class="btn btn-lg btn-success" href="http://www.yiiframework.com">Get started with Yii</a></p>
-    </div>
-
-    <div class="body-content">
-
-        <div class="row">
-            <div class="col-lg-4">
-                <h2>Heading</h2>
-
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-default" href="http://www.yiiframework.com/doc/">Yii Documentation &raquo;</a></p>
+                    <? elseif ($message->spam == 0): ?>
+                        
+                        <div class='<?=$message->user == \Yii::$app->user->identity->username? 'own' : 'not-own'?>'>
+                            <small class="user <?=$message->getRole() == 'admin'?'label label-primary':''?>"><?=$message->user?></small>
+                            <? if (\Yii::$app->user->identity->role == 'admin'):?>
+                                <span class='action label label-warning'>
+                                    <a href="<?=Url::to(['site/spam-message','id'=>$message->id, 'status'=>1])?>">Скрыть</a>
+                                </span>
+                            <? endif?>
+                            <p class='msg'><?=$message->text?></p>
+                            <small><?=date('d.m.Y',$message->created_at)?></small>
+                            <small><?=date('H:i',$message->created_at)?></small>
+                    </div>
+                    <? endif ?>
+                <? endforeach?>
             </div>
-            <div class="col-lg-4">
-                <h2>Heading</h2>
-
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-default" href="http://www.yiiframework.com/forum/">Yii Forum &raquo;</a></p>
-            </div>
-            <div class="col-lg-4">
-                <h2>Heading</h2>
-
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-default" href="http://www.yiiframework.com/extensions/">Yii Extensions &raquo;</a></p>
+            <div class="message-form">
+                <? if (\Yii::$app->user->isGuest): ?>
+                    <p class="center-block">Чтобы написать в чате, <a href="<?=Url::to(['auth/login'])?>">войдите</a> или <a href="<?=Url::to(['auth/signup'])?>">зарегистрируйтесь</a>.</p>
+                <? else: ?>
+                <textarea id="msg" class="form-control" required></textarea>
+                <button id="send" class="btn btn-success float-right " disabled>Отправить</button>
+                <? endif?>
             </div>
         </div>
-
     </div>
 </div>
+
+<?php
+$csrfName=Yii::$app->request->csrfParam; 
+$csrf = Yii::$app->request->getCsrfToken();
+
+$js = <<<JS
+
+    $('#send').click(function(){
+        send();
+    });
+    $('#msg').keyup(function(){
+        var text = $('#msg').val();
+
+        if (text != "") $('#send').prop('disabled', false);
+        else $('#send').prop('disabled', true);
+    });
+    function send(){
+        var text = $('#msg').val();
+
+        var csrfParam = $('meta[name="csrf-param"]').attr("content");
+        var csrfToken = $('meta[name="csrf-token"]').attr("content");
+        var data = {
+            msg: text,
+            csrfParam: csrfToken,
+        }
+        $.ajax({
+            url: "/post",
+            type: "post",
+            data: data ,
+            success: function (res) {
+                location.reload();
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+            console.log(textStatus, errorThrown);
+            }
+        });
+    }
+JS;
+
+$this->registerJS($js, \yii\web\View::POS_END);

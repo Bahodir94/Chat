@@ -14,6 +14,9 @@ $config = [
         '@tests' => '@app/tests',
     ],
     'components' => [
+        'authManager' => [
+            'class' => 'yii\rbac\PhpManager',
+        ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
         ],
@@ -26,12 +29,6 @@ $config = [
             ],
         ],
         'db' => $db,
-    ],
-    'modules'=>[
-        'user-management' => [
-            'class' => 'webvimark\modules\UserManagement\UserManagementModule',
-                'controllerNamespace'=>'vendor\webvimark\modules\UserManagement\controllers',
-        ],
     ],
     'params' => $params,
     /*
