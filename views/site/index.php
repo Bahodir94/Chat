@@ -2,7 +2,7 @@
 
 /* @var $this yii\web\View */
 
-$this->title = 'My Yii Application';
+$this->title = 'Чат';
 use yii\helpers\Html;
 use yii\helpers\Url;
 echo Html :: csrfMetaTags();
@@ -12,8 +12,8 @@ echo Html :: csrfMetaTags();
         <div class="col-md-10 col-md-offset-1">
             <div  class="messages">
                 <? foreach($messages as $message):?>
-                    <? if ($message->spam == 1 && \Yii::$app->user->identity->role == 'admin'):?>
-                        <div class="<?=$message->user == \Yii::$app->user->identity->username ? 'own' : 'not-own';?>">
+                    <? if ($message->spam == 1 && !Yii::$app->user->isGuest && \Yii::$app->user->identity->role == 'admin'):?>
+                        <div class="<?=!Yii::$app->user->isGuest && $message->user == \Yii::$app->user->identity->username ? 'own' : 'not-own';?>">
                             <small class="user"><?=$message->user?></small>
                             <small class="text-left label label-danger">спам</small>
                             <span class='action label label-info'>
@@ -26,9 +26,9 @@ echo Html :: csrfMetaTags();
 
                     <? elseif ($message->spam == 0): ?>
                         
-                        <div class='<?=$message->user == \Yii::$app->user->identity->username? 'own' : 'not-own'?>'>
+                        <div class='<?=!Yii::$app->user->isGuest &&$message->user == \Yii::$app->user->identity->username? 'own' : 'not-own'?>'>
                             <small class="user <?=$message->getRole() == 'admin'?'label label-primary':''?>"><?=$message->user?></small>
-                            <? if (\Yii::$app->user->identity->role == 'admin'):?>
+                            <? if (!Yii::$app->user->isGuest && \Yii::$app->user->identity->role == 'admin'):?>
                                 <span class='action label label-warning'>
                                     <a href="<?=Url::to(['site/spam-message','id'=>$message->id, 'status'=>1])?>">Скрыть</a>
                                 </span>
